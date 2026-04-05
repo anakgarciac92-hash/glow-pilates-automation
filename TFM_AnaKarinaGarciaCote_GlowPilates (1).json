@@ -1,0 +1,1448 @@
+{
+  "name": "TFM_AnaKarinaGarciaCote_GlowPilates",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const hoy = new Date();\nconst resultado = [];\n\nfor (const item of $input.all()) {\n  const socio = item.json;\n  \n  if (socio['Correo enviado'] === 'Sí' || socio['Estado'] === 'Usado') continue;\n  if (!socio['Ultima Clase'] || !socio['Fecha de renovación']) continue;\n\n  const renovacion = new Date(socio['Fecha de renovación'].split('/').reverse().join('-'));\n  const ultimaClase = new Date(socio['Ultima Clase'].split('/').reverse().join('-'));\n  \n  const diasRestantes = Math.floor((renovacion - hoy) / (1000 * 60 * 60 * 24));\n  const diasSinVenir = Math.floor((hoy - ultimaClase) / (1000 * 60 * 60 * 24));\n  const usadas = Number(socio['Clases usadas']) || 0;\n  \n  let planTotal = (socio.Plan === 'Ilimitado') ? 20 : Number(socio.Plan) || 0;\n  const pendientes = planTotal - usadas;\n  \n  let dispararAlerta = false;\n\n  if (socio.Plan === 'Ilimitado') {\n      if (diasRestantes <= 3 && usadas >= 8) {\n          dispararAlerta = false; \n      }\n      else if (diasSinVenir >= 10 || (diasRestantes <= 15 && usadas < 4)) {\n          dispararAlerta = true;\n      }\n  } \n  else if (socio.Plan == 8 && diasRestantes <= 10 && pendientes >= 4) {\n      dispararAlerta = true;\n  }\n  else if (socio.Plan == 4 && diasRestantes <= 7 && pendientes >= 2) {\n      dispararAlerta = true;\n  }\n\n  if (dispararAlerta) {\n    const bonoUrgente = (diasRestantes <= 3); \n    \n    resultado.push({ \n      json: { \n        ...socio, \n        bonoUrgente, \n        diasRestantes, \n        pendientes, \n        diasSinVenir \n      } \n    });\n  }\n}\n\nreturn resultado;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        0
+      ],
+      "id": "76f6839e-5795-404b-add7-280728b7f166",
+      "name": "Calcular inactividad y bonos"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -432,
+        0
+      ],
+      "id": "25a2fb85-6a1f-4631-9258-8fea1fba33d5",
+      "name": "Ejecución diaria 9AM"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Clasificación correos').item.json['Correo electrónico'] }}",
+        "subject": "={{ $('Clasificación correos').item.json.Nombre }}, ¡te echamos de menos en Glow Pilates! 💙",
+        "message": "={{ $('Clasificación correos').item.json.cuerpoEmail }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Glow Pilates"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1008,
+        80
+      ],
+      "id": "64b0a780-2635-4ac2-9306-562b5071183a",
+      "name": "Enviar correo",
+      "webhookId": "087e90ca-a76c-4076-ad22-b996152d0ede",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "RWdC2xeRIoRODyZX",
+          "name": "Gmail account 93"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1RpMT_EMRCnWi5CgdKUt7aAApU0ovd17374GZO2a2gRk",
+          "mode": "list",
+          "cachedResultName": "Ovejas Perdidas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RpMT_EMRCnWi5CgdKUt7aAApU0ovd17374GZO2a2gRk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Clientes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RpMT_EMRCnWi5CgdKUt7aAApU0ovd17374GZO2a2gRk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Correo electrónico": "={{ $('Clasificación correos').item.json['Correo electrónico'] }}",
+            "Correo enviado": "Sí",
+            "Fecha alerta": "={{new Date().toLocaleDateString('es-ES')}}"
+          },
+          "matchingColumns": [
+            "Correo electrónico"
+          ],
+          "schema": [
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Teléfono",
+              "displayName": "Teléfono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Correo electrónico",
+              "displayName": "Correo electrónico",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Plan",
+              "displayName": "Plan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Clases usadas",
+              "displayName": "Clases usadas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Ultima Clase",
+              "displayName": "Ultima Clase",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fecha de renovación",
+              "displayName": "Fecha de renovación",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Correo enviado",
+              "displayName": "Correo enviado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fecha alerta",
+              "displayName": "Fecha alerta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Respuesta",
+              "displayName": "Respuesta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Llamada",
+              "displayName": "Llamada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Notas",
+              "displayName": "Notas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1152,
+        80
+      ],
+      "id": "390c1220-dbe3-4d39-9fd1-8e560a732289",
+      "name": "Marcar email enviado",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "t2MXv8vEzRa8S8jX",
+          "name": "Google Sheets account 82"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 24,
+        "unit": "hours"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1312,
+        80
+      ],
+      "id": "44cf7c04-00ec-4a9b-8586-6e1a3b91a2cc",
+      "name": "Esperar 24h ",
+      "webhookId": "1521e3c3-e79c-4032-a1e1-16693999b626"
+    },
+    {
+      "parameters": {
+        "chatId": "860851719",
+        "text": "=⚠️ *ALERTAS URGENTES HOY*\n\n{{ $input.all().map(i => `👤 ${i.json.Nombre} | 🎟️ ${i.json.Plan} | ${i.json['Clases usadas']} clases usadas | última clase: ${i.json['Ultima Clase']} | vence el ${i.json['Fecha de renovación']}`).join('\\n') }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        752,
+        -80
+      ],
+      "id": "4b7f1096-f490-41a9-9b17-ac30ad34d726",
+      "name": "Alerta equipo",
+      "webhookId": "3cd5ca25-434e-400e-a217-1c2b4cf91da5",
+      "executeOnce": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "8jz85WUzZcBZpACc",
+          "name": "Telegram account 129"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "returnAll": "={{ true }}",
+        "filters": {
+          "q": "=is:unread newer_than:2d"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1504,
+        -80
+      ],
+      "id": "4210c960-b1c4-4f21-9f35-917fc84ae0d6",
+      "name": "Buscar respuestas",
+      "webhookId": "981d2838-eb27-4488-8d86-bfd749fd9479",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "RWdC2xeRIoRODyZX",
+          "name": "Gmail account 93"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const alumnosSinRespuesta = $input.all();\nlet mensaje = \"📋 *LLAMADAS PENDIENTES (24h sin respuesta)*\\n\\n\";\n\nif (alumnosSinRespuesta.length === 0) {\n  return [{ json: { mensajeFinal: \"Hoy no hay llamadas pendientes.\" } }];\n}\n\nfor (const item of alumnosSinRespuesta) {\n  const correo = item.json[\"Correo electrónico\"] || \"Sin correo\";\n  const nombre = item.json[\"Nombre\"] || correo;\n  const telefono = item.json[\"Teléfono\"] || \"Sin teléfono\";\n  mensaje += `👤 *${nombre}*\\n📞 ${telefono}\\n-----------\\n`;\n}\n\nreturn [{ json: { mensajeFinal: mensaje } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2416,
+        112
+      ],
+      "id": "2f5b9629-99e1-45a1-8036-84255fae3c99",
+      "name": "Crear lista "
+    },
+    {
+      "parameters": {
+        "chatId": "860851719",
+        "text": "={{ $json.mensajeFinal }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2576,
+        -32
+      ],
+      "id": "6363cde2-b949-4176-80e0-1d0864bd9b40",
+      "name": "Alerta equipo: Lista llamadas",
+      "webhookId": "2b93416c-b063-4a1c-b1ca-faad2c30cc47",
+      "executeOnce": true,
+      "credentials": {
+        "telegramApi": {
+          "id": "8jz85WUzZcBZpACc",
+          "name": "Telegram account 129"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "73c5e048-45be-4cbf-8d46-5142ac8c8495",
+              "leftValue": "={{ $('Calcular inactividad y bonos').item.json.bonoUrgente }}",
+              "rightValue": "=true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        336,
+        0
+      ],
+      "id": "6cb4d449-b885-4e20-ad64-51fbe9679c70",
+      "name": "¿es alerta urgente?"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1RpMT_EMRCnWi5CgdKUt7aAApU0ovd17374GZO2a2gRk",
+          "mode": "list",
+          "cachedResultName": "Ovejas Perdidas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RpMT_EMRCnWi5CgdKUt7aAApU0ovd17374GZO2a2gRk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Clientes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RpMT_EMRCnWi5CgdKUt7aAApU0ovd17374GZO2a2gRk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Correo electrónico": "={{ $json['Correo electrónico'] }}",
+            "Respuesta": "No",
+            "Nombre": "={{ $('Clasificación correos').item.json['Nombre'] }}",
+            "Teléfono": "={{ $('Clasificación correos').item.json['Teléfono'] }}"
+          },
+          "matchingColumns": [
+            "Correo electrónico"
+          ],
+          "schema": [
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Teléfono",
+              "displayName": "Teléfono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Correo electrónico",
+              "displayName": "Correo electrónico",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Plan",
+              "displayName": "Plan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Clases usadas",
+              "displayName": "Clases usadas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Ultima Clase",
+              "displayName": "Ultima Clase",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fecha de renovación",
+              "displayName": "Fecha de renovación",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Correo enviado",
+              "displayName": "Correo enviado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fecha alerta",
+              "displayName": "Fecha alerta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Respuesta",
+              "displayName": "Respuesta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Llamada",
+              "displayName": "Llamada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Notas",
+              "displayName": "Notas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2240,
+        112
+      ],
+      "id": "b31604cc-76d3-452f-b83c-0f866c5f2baa",
+      "name": "Marcar como \"No\"",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "t2MXv8vEzRa8S8jX",
+          "name": "Google Sheets account 82"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1RpMT_EMRCnWi5CgdKUt7aAApU0ovd17374GZO2a2gRk",
+          "mode": "list",
+          "cachedResultName": "Ovejas Perdidas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RpMT_EMRCnWi5CgdKUt7aAApU0ovd17374GZO2a2gRk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Clientes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RpMT_EMRCnWi5CgdKUt7aAApU0ovd17374GZO2a2gRk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Correo electrónico": "={{ $json['Correo electrónico'] }}",
+            "Respuesta": "Sí",
+            "Notas": "={{ $json.snippet.split(/escribió:|wrote:|On.*at.*wrote:/)[0].trim() }}"
+          },
+          "matchingColumns": [
+            "Correo electrónico"
+          ],
+          "schema": [
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Teléfono",
+              "displayName": "Teléfono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Correo electrónico",
+              "displayName": "Correo electrónico",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Plan",
+              "displayName": "Plan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Clases usadas",
+              "displayName": "Clases usadas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Ultima Clase",
+              "displayName": "Ultima Clase",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fecha de renovación",
+              "displayName": "Fecha de renovación",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Correo enviado",
+              "displayName": "Correo enviado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fecha alerta",
+              "displayName": "Fecha alerta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Respuesta",
+              "displayName": "Respuesta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Llamada",
+              "displayName": "Llamada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Notas",
+              "displayName": "Notas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2224,
+        -128
+      ],
+      "id": "4cec1890-e4e9-4f42-aa59-c2edafcd8346",
+      "name": "Marcar como \"sí\"",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "t2MXv8vEzRa8S8jX",
+          "name": "Google Sheets account 82"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "Correo electrónico",
+              "field2": "fromEmail"
+            }
+          ]
+        },
+        "joinMode": "enrichInput1",
+        "options": {
+          "fuzzyCompare": true
+        }
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1840,
+        64
+      ],
+      "id": "a3fbf422-e54f-4005-93c9-be7148787633",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "798e0a89-0460-4c38-bd05-01ec98cd498b",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2032,
+        64
+      ],
+      "id": "aa3220c6-6b68-419d-9095-360e24f7238d",
+      "name": "¿Respondió?"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  const from = item.json.From || '';\n  const match = from.match(/<([^>]+)>/);\n  item.json.fromEmail = match ? match[1].toLowerCase().trim() : from.toLowerCase().trim();\n}\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1664,
+        -80
+      ],
+      "id": "99e7c02f-633d-4be3-93da-1c4391e6488d",
+      "name": "Normalizar emails"
+    },
+    {
+      "parameters": {
+        "batchSize": 10,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        688,
+        80
+      ],
+      "id": "72d1b489-5312-4c31-ac6f-d008a5a75427",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "amount": 25
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        864,
+        80
+      ],
+      "id": "16d7f5ff-c2f0-41a3-9279-bf9263e21c2c",
+      "name": "Wait",
+      "webhookId": "2220403b-d6db-42cf-aa74-4970fccb699d"
+    },
+    {
+      "parameters": {
+        "jsCode": "for (const item of $input.all()) {\n  const socio = item.json;\n  const nombrePila = socio.Nombre.split(' ')[0];\n  let mensaje = \"\";\n\n  if (socio.Plan === 'Ilimitado' && socio['Clases usadas'] == 0) {\n    mensaje = `<p>¡Hola ${nombrePila}! 👋</p>\n               <p>Tienes activo tu <b>Plan Ilimitado</b> en Glow Pilates, pero hemos visto que este mes aún no has podido venir a entrenar.</p>\n               <p>Tu periodo de facturación renueva en ${socio.diasRestantes} días. ¡Aprovecha estos días para volver a las máquinas y sacarle partido a tu tarifa!</p>`;\n  } \n\n  else {\n    mensaje = `<p>Hola ${nombrePila}, ¿cómo va todo? 😊</p>\n               <p>Te escribo porque tus clases de este mes <b>caducan en solo ${socio.diasRestantes} días</b> y aún tienes <b>${socio.pendientes} clases</b> disponibles.</p>\n               <p>Como sabes, las clases no se acumulan para el mes siguiente, así que te animamos a que reserves tus sesiones antes de la fecha de renovación para no perderlas.</p>`;\n  }\n\n  item.json.cuerpoEmail = mensaje + \"<p>¡Te esperamos pronto!<br><b>Glow Pilates 💙</b></p>\";\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        528,
+        80
+      ],
+      "id": "64f20fe2-0c8b-4134-a8e0-2391e41491ce",
+      "name": "Clasificación correos"
+    },
+    {
+      "parameters": {
+        "content": "🗓️ FASE 1: ACTIVACIÓN Y CARGA DE DATOS\n\nSe ejecuta cada día a las 9:00 AM. Lee todos \nlos alumnos de Google Sheets y los pasa al \nmotor de cálculo.",
+        "height": 320,
+        "width": 384
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -480,
+        -128
+      ],
+      "typeVersion": 1,
+      "id": "32f5e9b2-6ab2-4d54-8fab-761d50de4fa9",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "🧠 FASE 2: LÓGICA DE NEGOCIO\n\nAnaliza cada alumno y decide si hay que \nalertarle según su plan (4, 8 o Ilimitado), \ndías restantes y clases pendientes. o si es un caso urgente\n",
+        "height": 416,
+        "width": 208
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -80,
+        -224
+      ],
+      "typeVersion": 1,
+      "id": "3b3c329b-90f0-44f7-9ed1-ab4793fa0ef6",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5a712305-cd21-4122-91aa-aeccd641b82e",
+              "leftValue": "={{ $json['Correo enviado'] }}",
+              "rightValue": "Sí",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        160,
+        0
+      ],
+      "id": "6d5c3606-904a-45d9-a9ab-727916f7d064",
+      "name": "Alerta pendiente?"
+    },
+    {
+      "parameters": {
+        "content": "📧 FASE 3: CLASIFICACIÓN Y ENVÍO DE CORREOS\n\n\"Alerta pendiente?\" filtra duplicados.\n\"¿Es alerta urgente?\" separa dos ramas:\n- Urgentes → marca la llamada como \"Pendiente\" → notificación inmediata por Telegram \n- Resto → correo HTML personalizado por plan\n\nLoop Over Items + Wait 20s entre envíos \npara evitar spam. Tras el envío, \nGoogle Sheets se actualiza con estado \"Sí\".",
+        "height": 480,
+        "width": 1120
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        144,
+        -224
+      ],
+      "typeVersion": 1,
+      "id": "704cde7f-59c2-4b01-b193-3a8e1310939b",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "🔄 FASE 4: SEGUIMIENTO ASÍNCRONO\n\nWait 24h. Al despertar:\n- Buscar respuestas: Gmail busca correos no leídos (is:unread newer_than:2d)            \n- Normalizar emails: extrae el email limpio del campo From con Regex\n- Merge cruza alumnos con respuestas por email\n- ¿Respondió?: si tiene id → marca \"Sí\"  si no → marca \"No\"\n- Sin respuesta → lista de llamadas por Telegram",
+        "height": 560,
+        "width": 1424
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1280,
+        -288
+      ],
+      "typeVersion": 1,
+      "id": "0d99ea47-257f-47e7-98b1-0aa1e111d48c",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1RpMT_EMRCnWi5CgdKUt7aAApU0ovd17374GZO2a2gRk",
+          "mode": "list",
+          "cachedResultName": "Ovejas Perdidas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RpMT_EMRCnWi5CgdKUt7aAApU0ovd17374GZO2a2gRk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Clientes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RpMT_EMRCnWi5CgdKUt7aAApU0ovd17374GZO2a2gRk/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Llamada": "Pendiente",
+            "Nombre": "={{ $json.Nombre }}"
+          },
+          "matchingColumns": [
+            "Nombre"
+          ],
+          "schema": [
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Teléfono",
+              "displayName": "Teléfono",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Correo electrónico",
+              "displayName": "Correo electrónico",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Plan",
+              "displayName": "Plan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Clases usadas",
+              "displayName": "Clases usadas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Ultima Clase",
+              "displayName": "Ultima Clase",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Estado",
+              "displayName": "Estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fecha de renovación",
+              "displayName": "Fecha de renovación",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Correo enviado",
+              "displayName": "Correo enviado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Fecha alerta",
+              "displayName": "Fecha alerta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Respuesta",
+              "displayName": "Respuesta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "Llamada",
+              "displayName": "Llamada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Notas",
+              "displayName": "Notas",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        576,
+        -80
+      ],
+      "id": "ec5adbcc-70e6-4d4d-b15d-2fc738954cbc",
+      "name": "Pendiente",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "t2MXv8vEzRa8S8jX",
+          "name": "Google Sheets account 82"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1RpMT_EMRCnWi5CgdKUt7aAApU0ovd17374GZO2a2gRk",
+          "mode": "list",
+          "cachedResultName": "Ovejas Perdidas",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RpMT_EMRCnWi5CgdKUt7aAApU0ovd17374GZO2a2gRk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Clientes",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RpMT_EMRCnWi5CgdKUt7aAApU0ovd17374GZO2a2gRk/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -240,
+        0
+      ],
+      "id": "9f0f1bda-1c16-4703-9264-569cacee35db",
+      "name": "Leer socios (Google Sheets)",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "t2MXv8vEzRa8S8jX",
+          "name": "Google Sheets account 82"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Calcular inactividad y bonos": {
+      "main": [
+        [
+          {
+            "node": "Alerta pendiente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecución diaria 9AM": {
+      "main": [
+        [
+          {
+            "node": "Leer socios (Google Sheets)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar correo": {
+      "main": [
+        [
+          {
+            "node": "Marcar email enviado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Marcar email enviado": {
+      "main": [
+        [
+          {
+            "node": "Esperar 24h ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar 24h ": {
+      "main": [
+        [
+          {
+            "node": "Buscar respuestas",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alerta equipo": {
+      "main": [
+        []
+      ]
+    },
+    "Buscar respuestas": {
+      "main": [
+        [
+          {
+            "node": "Normalizar emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear lista ": {
+      "main": [
+        [
+          {
+            "node": "Alerta equipo: Lista llamadas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alerta equipo: Lista llamadas": {
+      "main": [
+        []
+      ]
+    },
+    "¿es alerta urgente?": {
+      "main": [
+        [
+          {
+            "node": "Pendiente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Clasificación correos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar como \"No\"": {
+      "main": [
+        [
+          {
+            "node": "Crear lista ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar como \"sí\"": {
+      "main": [
+        []
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "¿Respondió?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Respondió?": {
+      "main": [
+        [
+          {
+            "node": "Marcar como \"sí\"",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marcar como \"No\"",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar emails": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Enviar correo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificación correos": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alerta pendiente?": {
+      "main": [
+        [
+          {
+            "node": "¿es alerta urgente?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Pendiente": {
+      "main": [
+        [
+          {
+            "node": "Alerta equipo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer socios (Google Sheets)": {
+      "main": [
+        [
+          {
+            "node": "Calcular inactividad y bonos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e4bdf3ab-b26e-4114-87f3-9c5b1aa8c455",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9598d86f4fec5d86581d704e57de784610b047bdff7f1a4692fc2822a9678fa1"
+  },
+  "id": "fmh9y0KtO1qQLBef",
+  "tags": []
+}
